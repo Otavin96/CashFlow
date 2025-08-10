@@ -1,33 +1,39 @@
-﻿using CashFlow.Communication.Requests;
+﻿using AutoMapper;
+using CashFlow.Communication.Requests;
 using CashFlow.Communication.Responses;
-using CashFlow.Domain.Entities;
+using CashFlow.Domain.Repositories;
+using CashFlow.Domain.Repositories.Expenses;
 using CashFlow.Exception.ExceptionsBase;
-using CashFlow.Infrastructure.DataAccess;
 
 namespace CashFlow.Application.UseCase.Expense.Register;
-public class RegisterExpenseUseCase
+public class RegisterExpenseUseCase : IRegisterExpenseUseCase
 {
-    public ResponseRegisteredExpenseJson Execute(RequestRegisterExpenseJson request)
+    private readonly IExpensesRepository _repository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    public RegisterExpenseUseCase(
+        IExpensesRepository repository, 
+        IUnitOfWork unitOfWork,
+        IMapper mapper
+        )
+    {
+        _repository = repository;
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+
+    }
+    public async Task<ResponseRegisteredExpenseJson> Execute(RequestRegisterExpenseJson request)
     {
         Validate(request);
 
         // Change 'Expense' to 'Domain.Entities.Expense' to reference the class, not the namespace
-        var entity = new CashFlow.Domain.Entities.Expense
-        {
-            // You need to initialize the properties here, e.g.:
-            // Amount = request.Amount,
-            // Description = request.Description,
-            // Date = request.Date
-            
-            Amount = request.Amount,
-            Date = request.Date,
-            Description = request.Description,
-            PaymentType = (Domain.Enums.PaymentType)request.PaymentType,
-            Title = request.Title,
+        var entity = _mapper.Map<Domain.Entities.Expense>(request);
 
-        };
+        await _repository.Add(entity);
 
-        return new ResponseRegisteredExpenseJson();
+        await _unitOfWork.Commit();
+
+        return _mapper.Map<ResponseRegisteredExpenseJson>(entity);
     }
 
     private void Validate(RequestRegisterExpenseJson request)
