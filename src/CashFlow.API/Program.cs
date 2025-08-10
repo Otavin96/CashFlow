@@ -1,5 +1,6 @@
 ﻿using CashFlow.API.Filters;
 using CashFlow.API.Middleware;
+using CashFlow.Infrastructure;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +25,8 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddRouting(option => option.LowercaseUrls = true);
 
 builder.Services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
+
+builder.Services.AddInfrastructure();
 
 var app = builder.Build();
 
