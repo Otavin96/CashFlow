@@ -1,20 +1,45 @@
-﻿using CashFlow.Communication.Requests;
+﻿using AutoMapper;
+using CashFlow.Communication.Requests;
 using CashFlow.Communication.Responses;
+using CashFlow.Domain.Repositories;
 using CashFlow.Exception.ExceptionsBase;
+using CashFlow.Infrastructure.DataAccess.Repositories;
 
 namespace CashFlow.Application.UseCase.Expense.Register;
-public class RegisterExpenseUseCase
+public class RegisterExpenseUseCase : IRegisterExpenseUseCase
 {
-    public ResponseRegisteredExpenseJson Execute(RequestRegisterExpenseJson request)
+    private readonly IExpensesWriteOnlyRepository _repository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    public RegisterExpenseUseCase(
+        IExpensesWriteOnlyRepository repository, 
+        IUnitOfWork unitOfWork,
+        IMapper mapper
+        )
+    {
+        _repository = repository;
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+
+    }
+    public async Task<ResponseRegisteredExpenseJson> Execute(RequestExpenseJson request)
     {
         Validate(request);
-        return new ResponseRegisteredExpenseJson();
+
+        // Change 'Expense' to 'Domain.Entities.Expense' to reference the class, not the namespace
+        var entity = _mapper.Map<Domain.Entities.Expense>(request);
+
+        await _repository.Add(entity);
+
+        await _unitOfWork.Commit();
+
+        return _mapper.Map<ResponseRegisteredExpenseJson>(entity);
     }
 
-    private void Validate(RequestRegisterExpenseJson request)
+    private void Validate(RequestExpenseJson request)
     {
 
-        var validator = new RegisterExpenseValidator();
+        var validator = new ExpenseValidator();
 
         var result = validator.Validate(request);
 
